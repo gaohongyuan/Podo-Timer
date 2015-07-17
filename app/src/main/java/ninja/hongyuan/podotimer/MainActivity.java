@@ -1,7 +1,11 @@
 package ninja.hongyuan.podotimer;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Vibrator;
@@ -24,6 +28,10 @@ public class MainActivity extends Activity {
     private boolean isDone;
     private Button toggleButton;
     private Vibrator vib;
+    private NotificationManager mNotifyMgr;
+    private NotificationManager timeupManager;
+    private Notification.Builder mBuilder;
+    private int mNotificationId = 12345;
 
 
     @Override
@@ -44,8 +52,34 @@ public class MainActivity extends Activity {
         vib = (Vibrator)getSystemService(Service.VIBRATOR_SERVICE);
         toggleButton = (Button)findViewById(R.id.toggle_button);
 
-        workCounter = counterInit(1500000);
-        breakCounter = counterInit(300000);
+        workCounter = counterInit(3000);
+        breakCounter = counterInit(2000);
+
+        timeupManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        mBuilder = new Notification.Builder(this)
+                .setSmallIcon(R.drawable.nficon)
+                .setContentTitle("Podo Timer")
+                .setContentText("Hello World!")
+                .setAutoCancel(true);
+
+        Intent resultIntent = new Intent(this, MainActivity.class);
+        // Because clicking the notification opens a new ("special") activity, there's
+        // no need to create an artificial back stack.
+        PendingIntent resultPendingIntent =
+                PendingIntent.getActivity(
+                        this,
+                        0,
+                        resultIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+
+        mBuilder.setContentIntent(resultPendingIntent);
+
+        // Gets an instance of the NotificationManager service
+        mNotifyMgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        // Builds the notification and issues it.
+
 
     }
 
@@ -77,13 +111,21 @@ public class MainActivity extends Activity {
                 long min = millisUntilFinished / 60000;
                 long sec = (millisUntilFinished % 60000) / 1000;
                 mTextField.setText(min + ":" + sec);
+                mBuilder.setContentText(min + ":" + sec);
+                mNotifyMgr.notify(mNotificationId, mBuilder.build());
             }
 
             public void onFinish() {
                 this.cancel();
                 vib.vibrate(500);
-                if(onWork) toggleButton.setText("Break");
-                if(onBreak) toggleButton.setText("Work");
+                if(onWork) {
+                    toggleButton.setText("Break");
+                    mBuilder.setContentText("Start a break?");
+                }
+                if(onBreak) {
+                    toggleButton.setText("Work");
+                    mBuilder.setContentText("Go back to Work?");
+                }
                 isDone = true;
                 mTextField.setText("done!");
             }
@@ -120,8 +162,11 @@ public class MainActivity extends Activity {
         breakCounter.cancel();
         toggleButton.setText("Work");
         mTextField.setText("Stopped");
+        mNotifyMgr.cancel(mNotificationId);
         onWork = false;
         onBreak = false;
         isDone = false;
     }
+
+
 }

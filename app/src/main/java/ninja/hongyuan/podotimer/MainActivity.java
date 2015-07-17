@@ -13,6 +13,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextClock;
 import android.widget.TextView;
 
@@ -52,8 +53,8 @@ public class MainActivity extends Activity {
         vib = (Vibrator)getSystemService(Service.VIBRATOR_SERVICE);
         toggleButton = (Button)findViewById(R.id.toggle_button);
 
-        workCounter = counterInit(3000);
-        breakCounter = counterInit(2000);
+        workCounter = counterInit(0);
+        breakCounter = counterInit(0);
 
         timeupManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
@@ -106,6 +107,7 @@ public class MainActivity extends Activity {
     }
 
     public CountDownTimer counterInit(int t) {
+        t *= 1000; // millisecond to second
         CountDownTimer ctr = new CountDownTimer(t, 100) {
             public void onTick(long millisUntilFinished) {
                 long min = millisUntilFinished / 60000;
@@ -137,12 +139,30 @@ public class MainActivity extends Activity {
 
     public void toggle(View view) {
         if (!isDone && !onWork && !onBreak || isDone && onBreak) {
+            EditText workTime = (EditText)findViewById(R.id.work_time);
+
+            int wt;
+            if(workTime.getText().toString().equals(""))
+                wt = 1500;
+            else
+                wt = Integer.parseInt(workTime.getText().toString());
+
+            workCounter = counterInit(wt);
             start(workCounter);
             onWork = true;
             onBreak = false;
         }
 
         else if (isDone && onWork) {
+            EditText breakTime = (EditText)findViewById(R.id.break_time);
+
+            int bt;
+            if(breakTime.getText().toString().equals(""))
+                bt = 500;
+            else
+                bt = Integer.parseInt(breakTime.getText().toString());
+
+            breakCounter = counterInit(bt);
             start(breakCounter);
             onWork = false;
             onBreak = true;

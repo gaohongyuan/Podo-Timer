@@ -28,4 +28,25 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true" />
 
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:ems="10"
+        android:id="@+id/work_time"
+        android:layout_above="@+id/toggle_button"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/toggle_button"
+        android:hint="work" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:ems="10"
+        android:id="@+id/break_time"
+        android:layout_above="@+id/toggle_button"
+        android:layout_toEndOf="@+id/toggle_button"
+        android:hint="break" />
+
 </RelativeLayout>

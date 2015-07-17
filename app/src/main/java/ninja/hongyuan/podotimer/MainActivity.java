@@ -1,8 +1,10 @@
 package ninja.hongyuan.podotimer;
 
 import android.app.Activity;
+import android.app.Service;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Vibrator;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -15,9 +17,13 @@ public class MainActivity extends Activity {
 
     private TextClock mTextClock;
     private TextView mTextField;
-    private CountDownTimer counter;
-    private boolean isStart;
-    private Button startButton;
+    private CountDownTimer workCounter;
+    private CountDownTimer breakCounter;
+    private boolean onWork;
+    private boolean onBreak;
+    private boolean isDone;
+    private Button toggleButton;
+    private Vibrator vib;
 
 
     @Override
@@ -29,21 +35,17 @@ public class MainActivity extends Activity {
         mTextClock = (TextClock)findViewById(R.id.textClock);
         mTextClock.setFormat24Hour("yyyy-MM-dd hh:mm:ss");
 
+        onWork = false;
+        onBreak = false;
+        isDone = false;
+
         // countdown test
         mTextField = (TextView)findViewById(R.id.textview);
-        counter = new CountDownTimer(30000, 1000) {
+        vib = (Vibrator)getSystemService(Service.VIBRATOR_SERVICE);
+        toggleButton = (Button)findViewById(R.id.toggle_button);
 
-            public void onTick(long millisUntilFinished) {
-                mTextField.setText("seconds remaining: " + millisUntilFinished / 1000);
-            }
-
-            public void onFinish() {
-                mTextField.setText("done!");
-            }
-        };
-
-        isStart = false;
-        startButton = (Button)findViewById(R.id.toggle_button);
+        workCounter = counterInit(1500000);
+        breakCounter = counterInit(300000);
 
     }
 
@@ -69,19 +71,57 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    public CountDownTimer counterInit(int t) {
+        CountDownTimer ctr = new CountDownTimer(t, 100) {
+            public void onTick(long millisUntilFinished) {
+                long min = millisUntilFinished / 60000;
+                long sec = (millisUntilFinished % 60000) / 1000;
+                mTextField.setText(min + ":" + sec);
+            }
+
+            public void onFinish() {
+                this.cancel();
+                vib.vibrate(500);
+                if(onWork) toggleButton.setText("Break");
+                if(onBreak) toggleButton.setText("Work");
+                isDone = true;
+                mTextField.setText("done!");
+            }
+        };
+
+        return ctr;
+
+    }
+
     public void toggle(View view) {
-        if (isStart) {
-            counter.cancel();
-            startButton.setText("Start");
-            mTextField.setText("Stopped");
-            isStart = false;
+        if (!isDone && !onWork && !onBreak || isDone && onBreak) {
+            start(workCounter);
+            onWork = true;
+            onBreak = false;
         }
 
-        else {
-            counter.start();
-            startButton.setText("Cancel");
-            isStart = true;
+        else if (isDone && onWork) {
+            start(breakCounter);
+            onWork = false;
+            onBreak = true;
         }
+        else cancel();
 
+    }
+
+    public void start(CountDownTimer ctr) {
+        ctr.start();
+        isDone = false;
+        toggleButton.setText("Stop");
+    }
+
+    public void cancel() {
+        workCounter.cancel();
+        breakCounter.cancel();
+        toggleButton.setText("Work");
+        mTextField.setText("Stopped");
+        onWork = false;
+        onBreak = false;
+        isDone = false;
     }
 }

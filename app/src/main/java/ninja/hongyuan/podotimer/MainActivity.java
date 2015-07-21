@@ -158,7 +158,7 @@ public class MainActivity extends Activity {
 
             int bt;
             if(breakTime.getText().toString().equals(""))
-                bt = 500;
+                bt = 300;
             else
                 bt = Integer.parseInt(breakTime.getText().toString());
 

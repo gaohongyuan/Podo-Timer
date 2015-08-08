@@ -22,11 +22,15 @@ public class MainActivity extends Activity {
 
     private TextClock mTextClock;
     private TextView mTextField;
-    private CountDownTimer workCounter;
-    private CountDownTimer breakCounter;
-    private boolean onWork;
-    private boolean onBreak;
-    private boolean isDone;
+
+    // status:
+    private final short PREPARE_TO_WORK = 0;
+    private final short PREPARE_TO_BREAK = 1;
+    private final short ON_WORK = 2;
+    private final short ON_BREAK = 3;
+    private short status = PREPARE_TO_WORK;
+
+    private CountDownTimer cdt = counterInit(25);
     private Button toggleButton;
     private Vibrator vib;
     private NotificationManager mNotifyMgr;
@@ -44,20 +48,14 @@ public class MainActivity extends Activity {
         mTextClock = (TextClock)findViewById(R.id.textClock);
         mTextClock.setFormat24Hour("yyyy-MM-dd hh:mm:ss");
 
-        onWork = false;
-        onBreak = false;
-        isDone = false;
 
         // countdown test
         mTextField = (TextView)findViewById(R.id.textview);
         vib = (Vibrator)getSystemService(Service.VIBRATOR_SERVICE);
         toggleButton = (Button)findViewById(R.id.toggle_button);
 
-        workCounter = counterInit(0);
-        breakCounter = counterInit(0);
-
+        // notification
         timeupManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
         mBuilder = new Notification.Builder(this)
                 .setSmallIcon(R.drawable.nficon)
                 .setContentTitle("Podo Timer")
@@ -84,6 +82,7 @@ public class MainActivity extends Activity {
 
     }
 
+    /*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -105,87 +104,77 @@ public class MainActivity extends Activity {
 
         return super.onOptionsItemSelected(item);
     }
+    */
 
+    // get a CountDownTimer with t minutes
     public CountDownTimer counterInit(int t) {
-        t *= 1000; // millisecond to second
+        t *= 60000; // millisecond to minute
+        // count-down: t minutes; tick frequency: 100ms
         CountDownTimer ctr = new CountDownTimer(t, 100) {
             public void onTick(long millisUntilFinished) {
                 long min = millisUntilFinished / 60000;
                 long sec = (millisUntilFinished % 60000) / 1000;
+                // update remaining time display
                 mTextField.setText(min + ":" + sec);
                 mBuilder.setContentText(min + ":" + sec);
                 mNotifyMgr.notify(mNotificationId, mBuilder.build());
             }
 
             public void onFinish() {
-                this.cancel();
                 vib.vibrate(500);
-                if(onWork) {
-                    toggleButton.setText("Break");
-                    mBuilder.setContentText("Start a break?");
-                }
-                if(onBreak) {
-                    toggleButton.setText("Work");
-                    mBuilder.setContentText("Go back to Work?");
-                }
-                isDone = true;
-                mTextField.setText("done!");
+                toggle();
+                mTextField.setText("Done");
             }
         };
 
         return ctr;
-
     }
 
-    public void toggle(View view) {
-        if (!isDone && !onWork && !onBreak || isDone && onBreak) {
-            EditText workTime = (EditText)findViewById(R.id.work_time);
+    // listen toggle button click
+    public void onToggleButtonClick(View view) {
+        toggle();
+    }
 
-            int wt;
-            if(workTime.getText().toString().equals(""))
-                wt = 1500;
-            else
-                wt = Integer.parseInt(workTime.getText().toString());
+    public void toggle() {
+        // get user-defined time value
+        EditText workTime = (EditText)findViewById(R.id.work_time);
+        EditText breakTime = (EditText)findViewById(R.id.break_time);
+        // default:
+        // work: 25min
+        // break: 5min
+        int wt = workTime.getText().toString().equals("")?
+                25 : Integer.parseInt(workTime.getText().toString());
+        int bt = breakTime.getText().toString().equals("")?
+                5 : Integer.parseInt(breakTime.getText().toString());
 
-            workCounter = counterInit(wt);
-            start(workCounter);
-            onWork = true;
-            onBreak = false;
+        switch (status) {
+            case PREPARE_TO_WORK:
+                status = ON_WORK;
+                cdt = counterInit(wt);
+                cdt.start();
+                toggleButton.setText("Stop");
+                break;
+            case PREPARE_TO_BREAK:
+                status = ON_BREAK;
+                cdt = counterInit(bt);
+                cdt.start();
+                toggleButton.setText("Stop");
+                break;
+            case ON_WORK:
+                status = PREPARE_TO_BREAK;
+                cdt.cancel();
+                toggleButton.setText("BREAK");
+                mTextField.setText("Stopped");
+                mNotifyMgr.cancel(mNotificationId);
+                break;
+            case ON_BREAK:
+                status = PREPARE_TO_WORK;
+                cdt.cancel();
+                toggleButton.setText("WORK");
+                mTextField.setText("Stopped");
+                mNotifyMgr.cancel(mNotificationId);
+                break;
         }
-
-        else if (isDone && onWork) {
-            EditText breakTime = (EditText)findViewById(R.id.break_time);
-
-            int bt;
-            if(breakTime.getText().toString().equals(""))
-                bt = 300;
-            else
-                bt = Integer.parseInt(breakTime.getText().toString());
-
-            breakCounter = counterInit(bt);
-            start(breakCounter);
-            onWork = false;
-            onBreak = true;
-        }
-        else cancel();
-
-    }
-
-    public void start(CountDownTimer ctr) {
-        ctr.start();
-        isDone = false;
-        toggleButton.setText("Stop");
-    }
-
-    public void cancel() {
-        workCounter.cancel();
-        breakCounter.cancel();
-        toggleButton.setText("Work");
-        mTextField.setText("Stopped");
-        mNotifyMgr.cancel(mNotificationId);
-        onWork = false;
-        onBreak = false;
-        isDone = false;
     }
 
 

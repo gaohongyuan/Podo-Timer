@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:text="Start"
         android:id="@+id/toggle_button"
-        android:onClick="toggle"
+        android:onClick="onToggleButtonClick"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true" />
 
